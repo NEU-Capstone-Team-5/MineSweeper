@@ -1,0 +1,7 @@
+pithermalcam
+libcamera
+matplotlib 
+scipy 
+numpy
+python3-rpi.gpio
+#idle3
