@@ -9,7 +9,7 @@ import os
 # Setup I2C
 i2c = busio.I2C(board.SCL, board.SDA, frequency=1000000)
 mlx = adafruit_mlx90640.MLX90640(i2c)
-mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_16_HZ
+mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_64_HZ
 mlx_shape = (24, 32)
 
 # Setup directory for storing the data
