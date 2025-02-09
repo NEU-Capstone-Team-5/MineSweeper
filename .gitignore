@@ -1,0 +1,62 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.eggs/
+dist/
+build/
+sdist/
+*.egg-info/
+*.whl
+wheelhouse/
+pip-log.txt
+pip-wheel-metadata/
+tmp*
+
+# Environments
+.venv
+venv/
+env/
+ENV/
+*.env
+
+# PyInstaller
+#  Usually these files are built before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.log
+*.rpt
+*.pkl
+
+# Translations
+*.mo
+*.pot
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+mypy-report/
+
+# Sphinx documentation
+docs/_build/
+
+# Temp files
+*.swp
+*~
+\#*
+
+# OS or Editor related files
+.DS_Store
+.vscode/
