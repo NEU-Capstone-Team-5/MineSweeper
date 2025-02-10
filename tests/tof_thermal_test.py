@@ -1,8 +1,15 @@
 """
-File: test.py
+File: tof_thermal_test.py
 Author: Alston Liu
-Date: 01-21-25
+Date: 02-10-25
 Description: 
+    Tests ToF sensors and thermal cameras by snapping 10 screenshots. Tests uses multiple processes and threads to process the data.
+    
+    Notes:
+    - Please make sure hardware contains at least 4 cores.
+    - Thermal images are not interpolated
+    - A delay of 1 second between each screenshot
+
 """
 # import libraries here
 try:
@@ -72,8 +79,11 @@ def collect_thermal_data(queue):
                 "path": npz_path
             }
             
-            # add data to queue
+            # add data to process queue
             queue.put(data)
+            
+            # put a delay for package movement
+            time.sleep(1) # 1 second
             
             # increase # of frames
             num_frames += 1
@@ -124,6 +134,9 @@ def collect_tof_data(queue):
             
             # add to queue
             queue.put(data)
+            
+            # put a delay for package movement
+            time.sleep(1) # 1 second
             
             # release frame
             cam.releaseFrame(frame)
