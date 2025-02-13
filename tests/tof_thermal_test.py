@@ -2,6 +2,7 @@
 File: tof_thermal_test.py
 Author: Alston Liu
 Date: 02-10-25
+Date Modified: 02-12-25
 Description: 
     Tests ToF sensors and thermal cameras by snapping 10 screenshots. Tests uses multiple processes and threads to process the data.
     
@@ -37,21 +38,18 @@ from datetime import datetime
 from pathlib import Path
 
 # Concurrency Libraries
-import threading
 import multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-
-def collect_thermal_data(queue):
+def collect_thermal_data(mlx, queue):
     """ Collects 10 thermal frames on a separate process
 
     Args:
         queue (_type_): Reference to the Concurrent Queue to add to the post processing
     """    
-    # Setup I2C
-    i2c = busio.I2C(board.SCL, board.SDA)
-    mlx = thermal_cam.MLX90640(i2c)
-    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
+    
+    # set refresh rate
+    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_64_HZ
     mlx_shape = (24, 32)
     num_frames = 0
     
@@ -90,14 +88,13 @@ def collect_thermal_data(queue):
         except Exception as e:
             print(f"Error: {e.args}")     
 
-def collect_tof_data(queue):
+def collect_tof_data(cam, queue):
     """ Collects 10 depth frames on a separate process.
 
     Args:
         queue (_type_): Reference to the Concurrent Queue to add to the post processing
     """    
     # Setup Depth Camera
-    cam = ac.ArducamCamera()
     ret = cam.open(ac.Connection.CSI, 0)
     if ret != 0:
         print("Failed to open camera. Error code:", ret)
@@ -262,6 +259,7 @@ def process_data(queue):
                 # pushing to either one
                 type = batch["sensor"]
                 
+                # transfer batch to the appropriate function
                 if (type == "depth"):
                     futures.append(executor.submit(process_tof_data, batch))
                 elif (type == "thermal"):
@@ -275,6 +273,14 @@ def process_data(queue):
                 print(f"Error processing data: {e}")
                 
 def main():
+    # Create device objects 
+    # Setup Thermal Camera
+    i2c = busio.I2C(board.SCL, board.SDA)
+    mlx = thermal_cam.MLX90640(i2c)
+    
+    # Setup ToF Camera
+    cam = ac.ArducamCamera()
+    
     # Print System information
     print("------- Board Information -------")
     for k,v in GPIO.RPI_INFO.items():
@@ -296,8 +302,8 @@ def main():
     queue = mp.Queue()
     
     processes = [
-        mp.Process(target=collect_tof_data, args=(queue,)),
-        mp.Process(target=collect_thermal_data, args=(queue,)),
+        mp.Process(target=collect_tof_data, args=(mlx, queue,)),
+        mp.Process(target=collect_thermal_data, args=(cam, queue,)),
     ]
     
     # start all processes
