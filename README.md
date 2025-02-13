@@ -6,10 +6,10 @@ Welcome to our Capstone Team 5 Repository for our MineSweeper Project. We will b
 
 ## Testing Scripts
 There will be files for users to execute when testing MineSweeper.
-Included in the files are:
-- `clean.sh`
-- `test.sh`
 The data from the scripts will be stored in the `data` directory.
+- To test all scripts, execute `test.sh` in superuser mode.
+- To clear data directory, add `-c` flag in the arguments.
+- To see all flag options, add `-h` flag in the arguments.
 
 ### WiFi Hotspot for File Transfer
 - **SSID:** rpi-team5
