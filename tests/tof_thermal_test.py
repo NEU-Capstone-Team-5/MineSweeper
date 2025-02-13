@@ -86,7 +86,7 @@ def collect_thermal_data(mlx, queue):
             # increase # of frames
             num_frames += 1
         except Exception as e:
-            print(f"Error: {e.args}")     
+            printf(f"Error: {e.args}")     
 
 def collect_tof_data(cam, queue):
     """ Collects 10 depth frames on a separate process.
