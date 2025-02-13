@@ -51,7 +51,7 @@ def collect_thermal_data(queue):
     # Setup I2C
     i2c = busio.I2C(board.SCL, board.SDA)
     mlx = thermal_cam.MLX90640(i2c)
-    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_16_HZ
+    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
     mlx_shape = (24, 32)
     num_frames = 0
     
@@ -88,7 +88,7 @@ def collect_thermal_data(queue):
             # increase # of frames
             num_frames += 1
         except Exception as e:
-            printf(f"Error: {e}")     
+            print(f"Error: {e.args}")     
 
 def collect_tof_data(queue):
     """ Collects 10 depth frames on a separate process.
