@@ -27,7 +27,7 @@ def process_data(file_path: str):
         os.makedirs(folder_path)
 
     timestamp = file_path.split('_')[-1].split('.')[0]  # Extract timestamp from the filename
-    save_path = os.path.join(folder_path, f"thermal_image_{timestamp}.png")
+    save_path = os.path.join(folder_path, f"thermal_image.png")
     fig.savefig(save_path, dpi=300, facecolor='#FCFCFC', bbox_inches='tight')
     print(f"Processed thermal image saved as {save_path}")
 

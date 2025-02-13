@@ -4,16 +4,8 @@ from datetime import datetime
 import os
 
 
-def save_data(depth_buf, confidence_buf, timestamp):
-    # Save the depth and confidence data into a file
-
-    np.savez(f"depthImage/captured_data_{timestamp}.npz", depth=depth_buf, confidence=confidence_buf)
-
-
 def main():
-    print("Arducam Depth Camera Demo.")
-    print("  SDK version:", ac.__version__)
-
+    start_time = datetime.now()
     cam = ac.ArducamCamera()
     ret = cam.open(ac.Connection.CSI, 0)
     if ret != 0:
@@ -29,6 +21,8 @@ def main():
     frame_count = 0
     while frame_count < 1:
         frame = cam.requestFrame(2000)
+        execution_time = datetime.now() - start_time
+        print(f"Execution time: {execution_time} seconds")
         print("Frame received", frame)
         if frame is not None and isinstance(frame, ac.DepthData):
             frame_count += 1
@@ -38,9 +32,7 @@ def main():
             # Get the timestamp
             now = datetime.now()
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
-
-            # Save data
-            save_data(depth_buf, confidence_buf, timestamp)
+            np.savez(f"depthImage/captured_data_{timestamp}.npz", depth=depth_buf, confidence=confidence_buf)
 
             cam.releaseFrame(frame)
 
@@ -50,5 +42,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 

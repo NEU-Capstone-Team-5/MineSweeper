@@ -37,7 +37,7 @@ def process_data(file_path: str):
     cv2.putText(result_image, timestamp, bottom_right, font, font_scale, color, thickness, cv2.LINE_AA)
 
     # Save the processed image
-    save_path = f"depthImage/processed_image_{timestamp}.png"
+    save_path = f"depthImage/depth_image.png"
     cv2.imwrite(save_path, result_image)
     print(f"Processed image saved as {save_path}")
 
