@@ -62,7 +62,7 @@ def collect_thermal_data(queue):
             frame = np.zeros((24 * 32,))
             mlx.getFrame(frame) # Read MLX temperatures into frame var
             data_array = np.reshape(frame, mlx_shape)
-            # print("Thermal Frame Received")
+            print("Thermal Frame Received")
             
             # timeframe
             now = datetime.now()
@@ -112,7 +112,7 @@ def collect_tof_data(queue):
     frame_count = 0
     while frame_count < 10:
         frame = cam.requestFrame(2000)
-        # print("ToF Frame received")
+        print("ToF Frame received")
         if frame is not None and isinstance(frame, ac.DepthData):
             depth_buf = frame.depth_data
             confidence_buf = frame.confidence_data
