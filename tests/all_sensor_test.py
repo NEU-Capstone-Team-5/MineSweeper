@@ -98,7 +98,14 @@ def collect_tof_data(tof, queue):
         queue (_type_): Reference to the Concurrent Queue to add to the post processing
     """    
     # Setup Depth Camera
-    ret = tof.open(ac.Connection.CSI, 0)
+    ret = -1
+    for i in range(15):
+        try: 
+            ret = tof.open(ac.Connection.CSI, i)
+            if ret == 0: break
+        except:
+            continue
+        
     if ret != 0:
         print("Failed to open camera. Error code:", ret)
         return
