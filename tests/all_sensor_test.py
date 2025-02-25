@@ -24,6 +24,7 @@ import adafruit_mlx90640 as thermal_cam
 import ArducamDepthCamera as ac
 import board
 import busio
+import picamera2 as pi_cam
 
 # data processing 
 import matplotlib.pyplot as plt
@@ -38,8 +39,10 @@ from datetime import datetime
 from pathlib import Path
 
 # Concurrency Libraries
+import threading
 import multiprocessing as mp
-from concurrent.futures import ThreadPoolExecutor, as_completed
+# from concurrent.futures import ThreadPoolExecutor, as_completed
+mp.set_start_method('fork', force=True)  # 'spawn' or 'forkserver' might also work
 
 def collect_thermal_data(mlx, queue):
     """ Collects 10 thermal frames on a separate process
@@ -49,7 +52,7 @@ def collect_thermal_data(mlx, queue):
     """    
     
     # set refresh rate
-    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_64_HZ
+    mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
     mlx_shape = (24, 32)
     num_frames = 0
     
@@ -86,29 +89,29 @@ def collect_thermal_data(mlx, queue):
             # increase # of frames
             num_frames += 1
         except Exception as e:
-            printf(f"Error: {e.args}")     
+            print(f"Error: {e.args}")     
 
-def collect_tof_data(cam, queue):
+def collect_tof_data(tof, queue):
     """ Collects 10 depth frames on a separate process.
 
     Args:
         queue (_type_): Reference to the Concurrent Queue to add to the post processing
     """    
     # Setup Depth Camera
-    ret = cam.open(ac.Connection.CSI, 0)
+    ret = tof.open(ac.Connection.CSI, 0)
     if ret != 0:
         print("Failed to open camera. Error code:", ret)
         return
 
-    ret = cam.start(ac.FrameType.DEPTH)
+    ret = tof.start(ac.FrameType.DEPTH)
     if ret != 0:
         print("Failed to start camera. Error code:", ret)
-        cam.close()
+        tof.close()
         return
     
     frame_count = 0
     while frame_count < 10:
-        frame = cam.requestFrame(2000)
+        frame = tof.requestFrame(2000) # set timeout to 2s
         print("ToF Frame received")
         if frame is not None and isinstance(frame, ac.DepthData):
             depth_buf = frame.depth_data
@@ -136,11 +139,21 @@ def collect_tof_data(cam, queue):
             time.sleep(1) # 1 second
             
             # release frame
-            cam.releaseFrame(frame)
+            tof.releaseFrame(frame)
             frame_count += 1
     
-    cam.stop()
-    cam.close()
+    tof.stop()
+    tof.close()
+
+def collect_rgb_data(cam: pi_cam.Picamera2, queue):
+    """Collects 10 RGB Frame data
+
+    Args:
+        cam (PiCamera2): The PiCamera object to interact with
+        queue (MP.Queue): Multiprocessing Queue that is thread-safe
+    """
+    
+    # setup PiCamera
 
 def getPreviewRGB(preview: np.ndarray, confidence: np.ndarray, confidence_value: int = 30) -> np.ndarray:
     preview = np.nan_to_num(preview)
@@ -163,23 +176,19 @@ def process_tof_data(data: Dict):
         data = np.load(file_path)
         depth_buf = data['depth']
         confidence_buf = data['confidence']
-        # print(f"Data loaded from: {file_path}")
-
-        # Apply depth data normalization and color map
-        r = 1000  # Range value; adjust as needed for your camera setup
-        result_image = (depth_buf * (255.0 / r)).astype(np.uint8)
-        result_image = cv2.applyColorMap(result_image, cv2.COLORMAP_RAINBOW)
-        result_image = getPreviewRGB(result_image, confidence_buf)
-
-        # Add timestamp to image
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.5
-        thickness = 1
-        color = (255, 255, 255)
-        text_size = cv2.getTextSize(timestamp, font, font_scale, thickness)[0]
-        text_width, text_height = text_size
-        bottom_right = (result_image.shape[1] - text_width - 10, result_image.shape[0] - 10)
-        cv2.putText(result_image, timestamp, bottom_right, font, font_scale, color, thickness, cv2.LINE_AA)
+        print(f"Data loaded from: {file_path}")
+        
+        # normalize data to scale from 0 to 255 and converting it into uint8
+        depth_data_normalized = cv2.normalize(depth_buf, None, 0, 255, cv2.NORM_MINMAX)
+        depth_data_uint8 = np.uint8(depth_data_normalized)
+    
+        # apply confidence mask to weed out lowe-confidence measurements from result
+        confidence_mask = confidence_buf > 0.5  # Adjust threshold as needed
+        depth_data_masked = np.copy(depth_data_uint8)
+        depth_data_masked[~confidence_mask] = 0  # Set low-confidence areas to black
+        
+        # apply color map jet with low numbers being cooler and high numbers being 
+        result_image = cv2.applyColorMap(depth_data_masked, cv2.COLORMAP_JET)
 
         # Save the processed image
         image_path = folder_path + '/../images'
@@ -189,11 +198,11 @@ def process_tof_data(data: Dict):
         
         save_path = os.path.join(image_path, f"depth_{timestamp}.png")
         cv2.imwrite(save_path, result_image)
-        # print(f"Processed image saved as {save_path}")
+        print(f"Processed image saved as {save_path}")
 
         # Delete the .npz file after processing
         os.remove(file_path)
-        # print(f"Deleted {file_path}")
+        print(f"Deleted {file_path}")
 
 def process_thermal_data(data: Dict):
     """Process thermal data and save the processed image."""
@@ -209,7 +218,7 @@ def process_thermal_data(data: Dict):
         # Load the saved thermal data from the .npz file
         data = np.load(file_path)
         temperature_data = data['temperature']
-        # print(f"Data loaded from: {file_path}")
+        print(f"Data loaded from: {file_path}")
 
         # Setup the figure for plotting
         plt.ion()
@@ -224,20 +233,17 @@ def process_thermal_data(data: Dict):
         cbar.update_normal(therm1)
 
         image_path = folder_path + '/../images'
-        # Save the processed thermal image
-        if not os.path.exists(image_path):
-            os.makedirs(image_path)
 
         save_path = os.path.join(image_path, f"thermal_image_{timestamp}.png")
         fig.savefig(save_path, dpi=300, facecolor='#FCFCFC', bbox_inches='tight')
-        # print(f"Processed thermal image saved as {save_path}")
+        print(f"Processed thermal image saved as {save_path}")
 
         # Close the figure to avoid memory issues
         plt.close(fig)
 
         # Delete the .npz file after processing
         os.remove(file_path)
-        # print(f"Deleted {file_path}")
+        print(f"Deleted {file_path}")
 
 def process_data(queue):
     """ Processes Thermal and Depth Data and converts it into an image using threads
@@ -245,32 +251,31 @@ def process_data(queue):
     Args:
         queue (_type_): data packets that needs to be processed
     """    
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = []
-        
+    with mp.Pool(processes=mp.cpu_count() - 1) as pool:        
         # Add tasks when queue is not empty
         while True:
             if not queue.empty():
                 batch = queue.get()
+                
                 # get null batch
                 if batch is None:
                     break;
                 
                 # pushing to either one
                 type = batch["sensor"]
+                print(f"Batch type: {type}")
+                
                 
                 # transfer batch to the appropriate function
                 if (type == "depth"):
-                    futures.append(executor.submit(process_tof_data, batch))
+                    result = pool.apply_async(process_tof_data,(batch,))
                 elif (type == "thermal"):
-                    futures.append(executor.submit(process_thermal_data, batch))
+                    result = pool.apply_async(process_thermal_data, (batch,))
+                else:
+                    break;
+                
+                print(result.get(timeout=1)) 
         
-        # Wait for all tasks to complete
-        for future in as_completed(futures):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"Error processing data: {e}")
                 
 def main():
     # Create device objects 
@@ -279,15 +284,16 @@ def main():
     mlx = thermal_cam.MLX90640(i2c)
     
     # Setup ToF Camera
-    cam = ac.ArducamCamera()
+    tof_cam = ac.ArducamCamera()
+    
+    # Setup RGB Camera
+    cam = pi_cam.Picamera2()
     
     # Print System information
     print("------- Board Information -------")
     for k,v in GPIO.RPI_INFO.items():
         print(f"{k}: {v}")
     print(f"GPIO Version: {GPIO.VERSION}")
-    print("------- Arducam Depth Camera -------")
-    print("SDK version:", ac.__version__)
     print("------------------------------------")
     
     # create directories if it doesn't exists
@@ -301,28 +307,40 @@ def main():
     # Create multiprocessing queue
     queue = mp.Queue()
     
-    processes = [
-        mp.Process(target=collect_tof_data, args=(mlx, queue,)),
-        mp.Process(target=collect_thermal_data, args=(cam, queue,)),
+    # create and start threads
+    sensor_threads = [
+        threading.Thread(target=collect_thermal_data, args=(mlx, queue,), daemon=True),
+        threading.Thread(target=collect_tof_data, args=(tof_cam, queue,), daemon=True),
+        # threading.Thread(target=collect_rgb_data, args=(cam, queue,), daemon=True)
     ]
     
-    # start all processes
-    for process in processes:
-        process.start()
+    # benchmark data acquisition start
+    data_acq_t1 = time.time()
+    # start all sensor data acquisition
+    for thread in sensor_threads:
+        thread.start()
     
-    # start post data process
-    processData = mp.Process(target=process_data, args=(queue,))
-    processData.start()
-    
-    # join all processes:
-    for process in processes:
-        process.join()
+    # wait for all threads to finish
+    for thread in sensor_threads:
+        thread.join()
+    # benchmark data acquisition end
+    data_acq_total = time.time() - data_acq_t1
     
     # add sentinel to the queue to stop processing
-    queue.put(None)
+    queue.put({
+        "sensor": "Off",
+        "timestamp": 0,
+        "path": "",
+    })
     
-    # wait for the processor to finish
-    processData.join()
+    # benchmark processing the data
+    post_process_t1 = time.time()
+    
+    process_data(queue)
+    
+    # benchmark processing end
+    post_process_total = time.time() - post_process_t1
+    
     print("All Processing completed.")
     queue.close()
     
@@ -330,6 +348,8 @@ def main():
     t2 = time.time()
     total = t2 - t1
     print(f"Total time: {total:.2f}")
+    print(f"Data Acquisition Time: {data_acq_total:.2f}")
+    print(f"Post Processing Time: {post_process_total:.2f}")
     return 0;
 
 if __name__ == "__main__":

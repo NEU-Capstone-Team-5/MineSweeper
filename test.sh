@@ -13,7 +13,7 @@ while test $# -gt 0; do
       ;;
     -c|--clean)
       echo "Attempting to clear data directory..."
-      read -p "Are you sure? " -n 1 -r
+      read -p "Are you sure? (y/n): " -n 1 -r
       echo
       if [[ ! $REPLY =~ [Yy]$ ]]
       then
