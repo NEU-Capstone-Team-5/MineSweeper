@@ -54,43 +54,47 @@ def collect_thermal_data(mlx, queue):
     # set refresh rate
     mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
     mlx_shape = (24, 32)
-    num_frames = 0
     
-    # collect 10 frames
-    while num_frames < 10:
-        try:
-            # Setup frame for storing temperatures
-            frame = np.zeros((24 * 32,))
-            mlx.getFrame(frame) # Read MLX temperatures into frame var
-            data_array = np.reshape(frame, mlx_shape)
-            print("Thermal Frame Received")
-            
-            # timeframe
-            now = datetime.now()
-            timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
-            
-            # save data to .npz file
-            npz_path = (os.getcwd() + f"/data/thermal/mlx90640_{timestamp}.npz")
-            np.savez(npz_path, temperature=data_array)
-            
-            # package data dictionary
-            data = {
-                "sensor": "thermal",
-                "timestamp": timestamp,
-                "path": npz_path
-            }
-            
-            # add data to process queue
-            queue.put(data)
-            
-            # put a delay for package movement
-            time.sleep(1) # 1 second
-            
-            # increase # of frames
-            num_frames += 1
-        except Exception as e:
-            print(f"Error: {e.args}")     
-
+    try:
+        num_frames = 0
+        
+        # collect 10 frames
+        while num_frames < 10:
+            try:
+                # Setup frame for storing temperatures
+                frame = np.zeros((24 * 32,))
+                mlx.getFrame(frame) # Read MLX temperatures into frame var
+                data_array = np.reshape(frame, mlx_shape)
+                print("Thermal Frame Received")
+                
+                # timeframe
+                now = datetime.now()
+                timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
+                
+                # save data to .npz file
+                npz_path = (os.getcwd() + f"/data/thermal/mlx90640_{timestamp}.npz")
+                np.savez(npz_path, temperature=data_array)
+                
+                # package data dictionary
+                data = {
+                    "sensor": "thermal",
+                    "timestamp": timestamp,
+                    "path": npz_path
+                }
+                
+                # add data to process queue
+                queue.put(data)
+                
+                # put a delay for package movement
+                time.sleep(1) # 1 second
+                
+                # increase # of frames
+                num_frames += 1
+            except Exception as e:
+                print(f"Error: {e.args}")     
+    except KeyboardInterrupt:
+        print(f"ToF Collection stopped from KeyboardInterrupt")
+        
 def collect_tof_data(tof, queue):
     """ Collects 10 depth frames on a separate process.
 
@@ -115,43 +119,47 @@ def collect_tof_data(tof, queue):
         print("Failed to start camera. Error code:", ret)
         tof.close()
         return
-    
-    frame_count = 0
-    while frame_count < 10:
-        frame = tof.requestFrame(2000) # set timeout to 2s
-        print("ToF Frame received")
-        if frame is not None and isinstance(frame, ac.DepthData):
-            depth_buf = frame.depth_data
-            confidence_buf = frame.confidence_data
-            
-            # Get the timestamp
-            now = datetime.now()
-            timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
-            
-            # save data to .npz file
-            npz_path = (os.getcwd() + f"/data/depth/tof_{timestamp}.npz")
-            np.savez(npz_path, depth=depth_buf, confidence=confidence_buf)
-            
-            # package data
-            data = {
-                "sensor": "depth",
-                "timestamp": timestamp,
-                "path": npz_path
-            }
-            
-            # add to queue
-            queue.put(data)
-            
-            # put a delay for package movement
-            time.sleep(1) # 1 second
-            
-            # release frame
-            tof.releaseFrame(frame)
-            frame_count += 1
-    
-    tof.stop()
-    tof.close()
-
+    try:
+        frame_count = 0
+        while frame_count < 10:
+            frame = tof.requestFrame(2000) # set timeout to 2s
+            print("ToF Frame received")
+            if frame is not None and isinstance(frame, ac.DepthData):
+                depth_buf = frame.depth_data
+                confidence_buf = frame.confidence_data
+                
+                # Get the timestamp
+                now = datetime.now()
+                timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
+                
+                # save data to .npz file
+                npz_path = (os.getcwd() + f"/data/depth/tof_{timestamp}.npz")
+                np.savez(npz_path, depth=depth_buf, confidence=confidence_buf)
+                
+                # package data
+                data = {
+                    "sensor": "depth",
+                    "timestamp": timestamp,
+                    "path": npz_path
+                }
+                
+                # add to queue
+                queue.put(data)
+                
+                # put a delay for package movement
+                time.sleep(1) # 1 second
+                
+                # release frame
+                tof.releaseFrame(frame)
+                frame_count += 1
+        
+        tof.stop()
+        tof.close()
+    except KeyboardInterrupt:
+        print(f"Depth Collection stopped from KeyboardInterrupt")
+        tof.stop()
+        tof.close()
+        
 def collect_rgb_data(cam: pi_cam.Picamera2, queue):
     """Collects 10 RGB Frame data
 
@@ -161,7 +169,52 @@ def collect_rgb_data(cam: pi_cam.Picamera2, queue):
     """
     
     # setup PiCamera
-
+    config = cam.create_still_configuration(main={"size": (1280, 720), "format": "XRGB8888"})
+    cam.configure(config)
+    cam.start()
+    
+    try:
+        num_frame = 0
+        # capture 10 frames
+        while num_frame < 10:
+            
+            # initialize buffer
+            image_buf = np.empty((1280 * 720 * 3,), dtype=np.uint8)
+            
+            # attempt to capture
+            image_buf = cam.capture_array("main") # attempt to capture frame into bgr format for openCV
+            print(f"Image Frame Captured")
+            
+            # reshape the image buffer into the appropriate size
+            image = image_buf.reshape((720, 1280, 4))
+            
+            # Get the timestamp
+            now = datetime.now()
+            timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
+            
+            # save data to .npz file
+            npz_path = (os.getcwd() + f"/data/rgb/rgb_{timestamp}.npz")
+            np.savez(npz_path, rgb=image)
+            
+            # package data
+            data = {
+                "sensor": "rgb",
+                "timestamp": timestamp,
+                "path": npz_path
+            }
+            
+            # add to queue
+            queue.put(data)
+            
+            # put a delay for package movement
+            time.sleep(1)
+            
+            num_frame += 1
+        cam.close()
+    except KeyboardInterrupt:
+        print(f"RGB Collection Stopped from KeyboardInterrupt")
+        cam.close()
+        
 def getPreviewRGB(preview: np.ndarray, confidence: np.ndarray, confidence_value: int = 30) -> np.ndarray:
     preview = np.nan_to_num(preview)
     preview[confidence < confidence_value] = (0, 0, 0)
@@ -170,7 +223,7 @@ def getPreviewRGB(preview: np.ndarray, confidence: np.ndarray, confidence_value:
 def process_tof_data(data: Dict):
     """Process a single NPZ file, apply image processing, and save the result."""
     
-    # Iterate through all .npz files in the folder
+    # use the data packet given 
     timestamp =  data["timestamp"]
     folder_path, npz_file = os.path.split(data["path"])
     
@@ -205,7 +258,7 @@ def process_tof_data(data: Dict):
         
         save_path = os.path.join(image_path, f"depth_{timestamp}.png")
         cv2.imwrite(save_path, result_image)
-        print(f"Processed image saved as {save_path}")
+        print(f"Processed tof image saved as {save_path}")
 
         # Delete the .npz file after processing
         os.remove(file_path)
@@ -252,11 +305,41 @@ def process_thermal_data(data: Dict):
         os.remove(file_path)
         print(f"Deleted {file_path}")
 
+def process_rgb_data(data:Dict):
+    """Process a single NPZ file, apply iamge processing, and save the result."""
+    
+    # use the data packet given to the function
+    timestamp = data["timestamp"]
+    folder_path, npz_file = os.path.split(data["path"])
+    
+    if npz_file.endswith('.npz'):
+        # full file path
+        file_path = os.path.join(folder_path, npz_file)
+        
+        # Process the file
+        data = np.load(file_path)
+        rgb_data = data["rgb"]
+        
+        # remove unused alpha channel and convert to BGR
+        rgb_image = cv2.cvtColor(rgb_data, cv2.COLOR_BGRA2BGR)
+        print(f"Data loaded from: {file_path}")
+        
+        # get save path
+        image_path = folder_path + '/../images'
+        save_path = os.path.join(image_path, f"rgb_{timestamp}.png")
+        
+        # convert rgb array into an image using openCV
+        cv2.imwrite(save_path, rgb_image)
+        print(f"Processed rgb image saved as {save_path}")
+        
+        # Delete the .npz file after processing
+        os.remove(file_path)
+        print(f"Deleted {file_path}")
+        
 def process_data(queue):
-    """ Processes Thermal and Depth Data and converts it into an image using threads
-
+    """ Processes Thermal, Depth, and RGB Data and converts it into an image using processes
     Args:
-        queue (_type_): data packets that needs to be processed
+        queue (multiprocessing.Queue): data packets that needs to be processed
     """    
     with mp.Pool(processes=mp.cpu_count() - 1) as pool:        
         # Add tasks when queue is not empty
@@ -274,10 +357,12 @@ def process_data(queue):
                 
                 
                 # transfer batch to the appropriate function
-                if (type == "depth"):
+                if type == "depth":
                     result = pool.apply_async(process_tof_data,(batch,))
-                elif (type == "thermal"):
+                elif type == "thermal":
                     result = pool.apply_async(process_thermal_data, (batch,))
+                elif type == "rgb":
+                    result = pool.apply_async(process_rgb_data, (batch,))
                 else:
                     break;
                 
@@ -307,6 +392,7 @@ def main():
     Path(os.getcwd() + '/data/thermal').mkdir(parents=True, exist_ok=True)
     Path(os.getcwd() + '/data/depth').mkdir(parents=True, exist_ok=True)
     Path(os.getcwd() + '/data/images').mkdir(parents=True, exist_ok=True)
+    Path(os.getcwd() + '/data/rgb').mkdir(parents=True, exist_ok=True)
     
     # start time
     t1 = time.time()
@@ -318,7 +404,7 @@ def main():
     sensor_threads = [
         threading.Thread(target=collect_thermal_data, args=(mlx, queue,), daemon=True),
         threading.Thread(target=collect_tof_data, args=(tof_cam, queue,), daemon=True),
-        # threading.Thread(target=collect_rgb_data, args=(cam, queue,), daemon=True)
+        threading.Thread(target=collect_rgb_data, args=(cam, queue,), daemon=True)
     ]
     
     # benchmark data acquisition start
@@ -354,9 +440,10 @@ def main():
     # end time
     t2 = time.time()
     total = t2 - t1
-    print(f"Total time: {total:.2f}")
-    print(f"Data Acquisition Time: {data_acq_total:.2f}")
-    print(f"Post Processing Time: {post_process_total:.2f}")
+    print("------- Benchamrk Results -------")
+    print(f"Total time: {total:.2f}s")
+    print(f"Data Acquisition Time: {data_acq_total:.2f}s")
+    print(f"Post Processing Time: {post_process_total:.2f}s")
     return 0;
 
 if __name__ == "__main__":
