@@ -60,3 +60,6 @@ docs/_build/
 # OS or Editor related files
 .DS_Store
 .vscode/
+
+# custom directories
+data/
