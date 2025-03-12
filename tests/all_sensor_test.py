@@ -25,7 +25,7 @@ import ArducamDepthCamera as ac
 import board
 import busio
 import picamera2 as pi_cam
-
+from libcamera import controls
 # data processing 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -169,9 +169,10 @@ def collect_rgb_data(cam: pi_cam.Picamera2, queue):
     """
     
     # setup PiCamera
-    config = cam.create_still_configuration(main={"size": (1280, 720), "format": "XRGB8888"})
+    config = cam.create_still_configuration(main={"size": (1920, 1080), "format": "XRGB8888"})
     cam.configure(config)
     cam.start()
+    cam.set_controls({"AfMode": controls.AfModeEnum.Continuous})
     
     try:
         num_frame = 0
@@ -179,14 +180,14 @@ def collect_rgb_data(cam: pi_cam.Picamera2, queue):
         while num_frame < 10:
             
             # initialize buffer
-            image_buf = np.empty((1280 * 720 * 3,), dtype=np.uint8)
+            image_buf = np.empty((1920 * 1080 * 3,), dtype=np.uint8)
             
             # attempt to capture
             image_buf = cam.capture_array("main") # attempt to capture frame into bgr format for openCV
             print(f"Image Frame Captured")
             
             # reshape the image buffer into the appropriate size
-            image = image_buf.reshape((720, 1280, 4))
+            image = image_buf.reshape((1080, 1920, 4))
             
             # Get the timestamp
             now = datetime.now()
@@ -261,7 +262,7 @@ def process_tof_data(data: Dict):
         print(f"Processed tof image saved as {save_path}")
 
         # Delete the .npz file after processing
-        os.remove(file_path)
+        # os.remove(file_path)
         print(f"Deleted {file_path}")
 
 def process_thermal_data(data: Dict):
@@ -302,7 +303,7 @@ def process_thermal_data(data: Dict):
         plt.close(fig)
 
         # Delete the .npz file after processing
-        os.remove(file_path)
+        # os.remove(file_path)
         print(f"Deleted {file_path}")
 
 def process_rgb_data(data:Dict):
@@ -333,7 +334,7 @@ def process_rgb_data(data:Dict):
         print(f"Processed rgb image saved as {save_path}")
         
         # Delete the .npz file after processing
-        os.remove(file_path)
+        # os.remove(file_path)
         print(f"Deleted {file_path}")
         
 def process_data(queue):
@@ -366,9 +367,8 @@ def process_data(queue):
                 else:
                     break;
                 
-                print(result.get(timeout=1)) 
-        
-                
+                print(result.get(timeout=2)) 
+                      
 def main():
     # Create device objects 
     # Setup Thermal Camera
