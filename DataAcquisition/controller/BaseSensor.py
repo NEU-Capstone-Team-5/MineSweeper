@@ -7,7 +7,7 @@ class BaseSensor:
     def __init__(self, sensor_name, data_queue):
         self.sensor_name = sensor_name
         self.data_queue = data_queue
-        self.running = True
+        self.running = False
         
     def run(self):
         raise NotImplementedError
