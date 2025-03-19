@@ -3,11 +3,11 @@ import os
 import numpy as np
 import ArducamDepthCamera as ac
 from datetime import datetime
-from controller import BaseSensor  # Assuming BaseSensor is in the same directory
+from DataAcquisition.Controller.BaseSensor import BaseSensor  # Assuming BaseSensor is in the same directory
 import multiprocessing as mp
 import logging
 
-class TofSensor(BaseSensor):
+class DepthSensor(BaseSensor):
     """
     Collects data from the ToF Camera.
     """
@@ -45,7 +45,7 @@ class TofSensor(BaseSensor):
         """
         try:
             frame = self.tof.requestFrame(2000)  # set timeout to 2s
-            print("ToF Frame received")
+            self.logger.info("ToF Frame received")
             if frame is not None and isinstance(frame, ac.DepthData):
                 depth_buf = frame.depth_data
                 confidence_buf = frame.confidence_data
@@ -76,11 +76,14 @@ class TofSensor(BaseSensor):
         """
         self._setup_camera()
         try:
-            while self.running:
+            nFrames = 0
+            while self.running.is_set() and nFrames < self.num_frames:
                 data = self.acquire_data()
+                self.logger.info("ToF Frame Captured")
                 if data:
                     self.data_queue.put(data)
-                time.sleep(delay) 
+                time.sleep(delay)
+                nFrames += 1
         except KeyboardInterrupt:
             self.logger.warning("ToF Collection stopped from KeyboardInterrupt")
         finally:

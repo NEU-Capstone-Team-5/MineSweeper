@@ -11,6 +11,7 @@ class DataAcquisitionController():
         """ Initializes Data Acquistion Controller."""
         # Create Multiprocessing Pool
         self.pool = mp.Pool(processes=num_processes)
+        
         # create multiprocessing queue for data queues
         self.data_queue = mp.Queue(maxsize=400) # Optional for now (no processing will be done after)
         
@@ -26,7 +27,7 @@ class DataAcquisitionController():
         self.log_queue = mp.Queue(-1)
         self.logger = self._setup_logger(log_level, self.log_queue)
         
-        # Create a"real" handler
+        # Create a "real" handler
         real_handler = logging.FileHandler("temp.log")
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         real_handler.setFormatter(formatter)
@@ -81,6 +82,7 @@ class DataAcquisitionController():
                 kwargs (typing.Dict): additional keyword arguments
         """
         try:
+            self.logger.info(f"Attempting to start {sensor_name}'s process")
             sensor = sensor_class(sensor_name, self.data_queue, self.running, 
                                   self.logger, *args, **kwargs)
             sensor.run() #The sensor will run forever, until stopped.
@@ -92,18 +94,20 @@ class DataAcquisitionController():
         """Starts all configured sensors."""
         results = []
         # traverse through sensor configurations
+    
         for sensor_name, config in self.sensor_configs.items():
             # Check if the sensor already exists
             if sensor_name in self.sensor_processes:
                 self.logger.warning(f"Sensor '{sensor_name}' already running. Skipping.")
                 continue
+            # add to running sensor_process
+            self.sensor_processes[sensor_name] = config
             
             # initialize a multiprocessing queue for each sensor
             results.append(self.pool.apply_async(self._run_sensor,
                                                  args=(config["class"], sensor_name, config["args"], config["kwargs"])))
             
-            # add to running sensor_process
-            self.sensor_processes[sensor_name] = config
+            
                 
     def stop_all_sensors(self):
         """Stops all running sensors."""
@@ -111,6 +115,7 @@ class DataAcquisitionController():
         self.pool.close()
         self.pool.join()
         self.logger.info("Process pool stopped.")
+        time.sleep(0.1)
         self.listener.stop()
         
     def get_sensor_data(self):

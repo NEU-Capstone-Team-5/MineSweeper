@@ -3,6 +3,7 @@
 import time
 import multiprocessing as mp
 import logging
+
 class BaseSensor:
     def __init__(self, sensor_name, data_queue, event: mp.Event, logger: logging.Logger, *args, **kwargs):
         self.sensor_name = sensor_name
@@ -28,3 +29,4 @@ class BaseSensor:
     
     def stop(self):
         self.logger.info(f"{self.sensor_name} stopped.")
+        self.running.clear()

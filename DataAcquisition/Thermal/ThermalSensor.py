@@ -5,7 +5,7 @@ import adafruit_mlx90640 as thermal_cam
 import busio
 import board
 from datetime import datetime
-from controller import BaseSensor
+from DataAcquisition.Controller.BaseSensor import BaseSensor
 import multiprocessing as mp
 import logging
 
@@ -33,7 +33,7 @@ class ThermalSensor(BaseSensor):
             frame = np.zeros((24 * 32,))
             self.mlx.getFrame(frame)
             data_array = np.reshape(frame, self.mlx_shape)
-            print("Thermal Frame Received")
+            self.logger.info("Thermal Frame Received")
             
             now = datetime.now()
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
@@ -49,7 +49,7 @@ class ThermalSensor(BaseSensor):
             }
             return data
         except Exception as e:
-            print(f"Error acquiring thermal data: {e}")
+            self.logger.error(f"Error acquiring thermal data: {e}")
             return None
     
     def run(self, delay=1):
@@ -57,13 +57,14 @@ class ThermalSensor(BaseSensor):
         Continuously collects thermal data and puts it into the data queue.
         """
         try:
-            while self.running.is_set():
+            nFrames = 0
+            while self.running.is_set() and nFrames < self.num_frames:
                 data = self.acquire_data()
                 if data:
                     self.data_queue.put(data)
                 time.sleep(delay)  # Adjust as needed
         except KeyboardInterrupt:
-            print(f"Thermal Collection stopped from KeyboardInterrupt")
+            self.logger.error(f"Thermal Collection stopped from KeyboardInterrupt")
         except Exception as e:
             self.logger.error(f"Error in thermal sensor: {e}")
             self.data_queue.put({
@@ -78,5 +79,4 @@ class ThermalSensor(BaseSensor):
         """
         Stops the thermal data collection.
         """
-        self.running.clear() # Stop the Sensor
-        print("Thermal sensor stopped.")
+        self.logger.info("Thermal sensor stopped.")

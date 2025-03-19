@@ -4,9 +4,9 @@ import numpy as np
 import picamera2 as pi_cam
 from libcamera import controls
 from datetime import datetime
-from controller import BaseSensor  # Assuming BaseSensor is in the same directory
+from DataAcquisition.Controller.BaseSensor import BaseSensor  # Assuming BaseSensor is in the same directory
 import logging
-
+import multiprocessing as mp
 
 class RgbSensor(BaseSensor):
     """
@@ -62,7 +62,7 @@ class RgbSensor(BaseSensor):
         except Exception as e:
             print(f"Error acquiring RGB data: {e}")
             return None
-    @override 
+   
     def run(self):
         """
         Continuously collects RGB data and puts it into the data queue.
@@ -78,7 +78,7 @@ class RgbSensor(BaseSensor):
                 time.sleep(1)  # Adjust as needed
                 nFrames += 1
         except KeyboardInterrupt:
-            print(f"RGB Collection Stopped from KeyboardInterrupt")
+            self.logger.error(f"RGB Collection Stopped from KeyboardInterrupt")
         finally:
             self.stop()
     
@@ -86,6 +86,7 @@ class RgbSensor(BaseSensor):
         """
         Stops the RGB data collection.
         """
-        self.running = False
+        self.logger.info("RGB sensor stopped.")
         self.cam.close()
-        print("RGB sensor stopped.")
+        super().stop()
+       
