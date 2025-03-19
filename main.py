@@ -27,6 +27,11 @@ def main():
     controller = DataAcquisitionController(num_processes=3, log_level=logging.INFO)
     
     # Add sensor configurations to the controller
-    controller.add_sensor_config("thermal", ThermalSensor)
-    controller.add_sensor_config("tof", DepthSensor)
-    controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080))
+    controller.add_sensor_config("thermal", ThermalSensor, num_frames = 10)
+    controller.add_sensor_config("tof", DepthSensor, num_frames = 10)
+    controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
+    
+    # run the sensors
+    controller.start_all_sensors()
+    
+    

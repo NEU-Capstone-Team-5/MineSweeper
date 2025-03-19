@@ -12,9 +12,15 @@ class RgbSensor(BaseSensor):
     """
     Collects data from the RGB Camera.
     """
-    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, resolution=(1920, 1080), *args, **kwargs):
-        super().__init__(sensor_name, data_queue, event, logger)
-        self.resolution = resolution
+    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, *args, **kwargs):
+        super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
+        
+        # get resolution from constructor
+        if ("resolution" in kwargs):
+            self.resolution = kwargs["resolution"]
+        else :
+            self.resolution = (1920, 1080) # default resolution to take
+
         self.cam = pi_cam.Picamera2()
         self._setup_camera()
         
@@ -56,18 +62,21 @@ class RgbSensor(BaseSensor):
         except Exception as e:
             print(f"Error acquiring RGB data: {e}")
             return None
-    
+    @override 
     def run(self):
         """
         Continuously collects RGB data and puts it into the data queue.
         """
         self.running = True
         try:
-            while self.running:
+            self._setup_camera()
+            nFrames = 0
+            while self.running or nFrames < self.num_frames:
                 data = self.acquire_data()
                 if data:
                     self.data_queue.put(data)
                 time.sleep(1)  # Adjust as needed
+                nFrames += 1
         except KeyboardInterrupt:
             print(f"RGB Collection Stopped from KeyboardInterrupt")
         finally:

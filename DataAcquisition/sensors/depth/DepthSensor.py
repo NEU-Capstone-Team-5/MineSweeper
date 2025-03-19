@@ -12,10 +12,8 @@ class TofSensor(BaseSensor):
     Collects data from the ToF Camera.
     """
     def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, *args, **kwargs):
-        super().__init__(sensor_name, data_queue, event, logger)
+        super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
         self.tof = ac.ArducamCamera()
-        self.args = args
-        self.kwargs = kwargs
 
     def _setup_camera(self):
         """

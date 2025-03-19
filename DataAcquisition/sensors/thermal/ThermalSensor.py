@@ -14,7 +14,7 @@ class ThermalSensor(BaseSensor):
     Collects data from the Thermal Camera.
     """
     def __init__(self, sensor_name, data_queue, event: mp.Event, 
-                 logger: logging.Logger, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ):
+            logger: logging.Logger, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, *args, **kwargs):
         super().__init__(sensor_name, data_queue, event, logger)
         self.refresh_rate = refresh_rate
         self.mlx_shape = (24, 32)
@@ -64,7 +64,6 @@ class ThermalSensor(BaseSensor):
                 time.sleep(delay)  # Adjust as needed
         except KeyboardInterrupt:
             print(f"Thermal Collection stopped from KeyboardInterrupt")
-            self.running.clear() # Stop the sensor
         except Exception as e:
             self.logger.error(f"Error in thermal sensor: {e}")
             self.data_queue.put({
@@ -72,7 +71,6 @@ class ThermalSensor(BaseSensor):
                 "sensor": self.sensor_name,
                 "message": str(e)
             })
-            self.running.clear() # Stop the sensor
         finally:
             self.stop()
     
@@ -80,4 +78,5 @@ class ThermalSensor(BaseSensor):
         """
         Stops the thermal data collection.
         """
+        self.running.clear() # Stop the Sensor
         print("Thermal sensor stopped.")

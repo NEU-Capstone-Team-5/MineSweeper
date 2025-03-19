@@ -88,7 +88,7 @@ class DataAcquisitionController():
             self.logger.error(f"Error in sensor '{sensor_name}' process: {e}")
             raise
         
-    def start_all_sensors(self):
+    def start_all_sensors(self, num_frames=10):
         """Starts all configured sensors."""
         results = []
         # traverse through sensor configurations
