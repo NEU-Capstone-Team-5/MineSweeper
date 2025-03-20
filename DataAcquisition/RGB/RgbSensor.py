@@ -42,7 +42,7 @@ class RgbSensor(BaseSensor):
         """
         try:
             image_buf = self.cam.capture_array("main")
-            print(f"Image Frame Captured")
+            self.logger.debug(f"Image Frame Captured")
             
             image = image_buf.reshape((self.resolution[1], self.resolution[0], 4))
             
@@ -52,6 +52,7 @@ class RgbSensor(BaseSensor):
             # save data to .npz file
             npz_path = ( + f"/data/rgb/rgb_{timestamp}.npz")
             np.savez(npz_path, rgb=image)
+            self.logger.debug(f"Saving RGB Data at {npz_path}.")
             
             data = {
                 "sensor": "rgb",
@@ -60,7 +61,7 @@ class RgbSensor(BaseSensor):
             }
             return data
         except Exception as e:
-            print(f"Error acquiring RGB data: {e}")
+            self.logger.error(f"Error acquiring RGB data: {e}")
             return None
    
     def run(self):

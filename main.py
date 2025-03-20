@@ -11,8 +11,6 @@ from DataAcquisition.Depth.DepthSensor import DepthSensor
 from DataAcquisition.RGB.RgbSensor import RgbSensor
 from DataAcquisition.utils.script_path import get_script_dir
 
-# Import Sensor Libraries
-
 if __name__ == "__main__":
     # --- Initialization ---
     script_dir = get_script_dir(__file__)
@@ -42,8 +40,9 @@ if __name__ == "__main__":
         # wait here
         if (not controller.data_queue.empty()):
             break;
-        
+    print(f"----- Stopping Sensors Processes -----")
     controller.stop_all_sensors()
     
+    logging.shutdown()
     
     

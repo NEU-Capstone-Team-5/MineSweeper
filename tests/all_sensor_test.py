@@ -409,6 +409,7 @@ def main():
     
     # benchmark data acquisition start
     data_acq_t1 = time.time()
+    
     # start all sensor data acquisition
     for thread in sensor_threads:
         thread.start()
@@ -416,6 +417,7 @@ def main():
     # wait for all threads to finish
     for thread in sensor_threads:
         thread.join()
+        
     # benchmark data acquisition end
     data_acq_total = time.time() - data_acq_t1
     

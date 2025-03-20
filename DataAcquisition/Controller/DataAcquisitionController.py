@@ -21,10 +21,10 @@ class DataAcquisitionController():
         
         # Create a multiprocessing event flag
         self.running = mp.Event() 
-        self.running.set() # Set the flag to True initially\
+        self.running.set() # Set the flag to True initially
         
         # Multiprocessing logging
-        self.log_queue = mp.Queue(-1)
+        self.log_queue = mp.Queue()
         self.logger = self._setup_logger(log_level, self.log_queue)
         
         # Create a "real" handler
@@ -93,30 +93,43 @@ class DataAcquisitionController():
     def start_all_sensors(self, num_frames=10):
         """Starts all configured sensors."""
         results = []
+        
         # traverse through sensor configurations
-    
         for sensor_name, config in self.sensor_configs.items():
             # Check if the sensor already exists
             if sensor_name in self.sensor_processes:
                 self.logger.warning(f"Sensor '{sensor_name}' already running. Skipping.")
                 continue
+            
             # add to running sensor_process
             self.sensor_processes[sensor_name] = config
+            self.logger.info(f"Starting {sensor_name} processing.")
             
             # initialize a multiprocessing queue for each sensor
-            results.append(self.pool.apply_async(self._run_sensor,
-                                                 args=(config["class"], sensor_name, config["args"], config["kwargs"])))
+            res = self.pool.apply_async(self._run_sensor,
+                    args=(config["class"], sensor_name, config["args"], config["kwargs"]))
             
+            # append the result to the results array
+            results.append(res.get())
             
-                
+        # wait for all sensors to finish their tasks
+        self.pool.join()
+        
+        # stop all sensors
+        self.stop_all_sensors()
+            
     def stop_all_sensors(self):
         """Stops all running sensors."""
         self.running.clear() # Clear running event flag
         self.pool.close()
-        self.pool.join()
         self.logger.info("Process pool stopped.")
         time.sleep(0.1)
         self.listener.stop()
+        time.sleep(0.1)
+        for handler in self.listener.handlers:
+            handler.flush()
+            handler.close()
+        logging.shutdown()
         
     def get_sensor_data(self):
         """Retrieves data from a sensor's queue."""
@@ -127,7 +140,7 @@ class DataAcquisitionController():
                 self.logger.error(f"Error received from {item['sensor']}: {item['message']}")
                 self.stop_all_sensors()
                 return None  # Or raise an exception
-
+            
             return item
         except mp.queues.Empty:
             return None

@@ -67,7 +67,7 @@ class DepthSensor(BaseSensor):
                 return data
             return None
         except Exception as e:
-            print(f"Error acquiring ToF data: {e}")
+            self.logger.error(f"Error acquiring ToF data: {e}")
             return None
     
     def run(self, delay=1):
@@ -96,4 +96,4 @@ class DepthSensor(BaseSensor):
         self.running = False
         self.tof.stop()
         self.tof.close()
-        print("ToF sensor stopped.")
+        self.logger.info("ToF sensor stopped.")
