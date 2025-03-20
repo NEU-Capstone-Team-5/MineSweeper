@@ -34,13 +34,13 @@ def detect_hotspots(thermal_image_path, threshold=200):
     #return image, thresh
     return image, centers
 
-# thermal_image = "1.png"
-# #hotspot_image, thresholded = detect_hotspots(thermal_image, threshold=200)
-# hotspot_image, centers = detect_hotspots(thermal_image, threshold=200)
+thermal_image = "thermal.jpg"
+#hotspot_image, thresholded = detect_hotspots(thermal_image, threshold=200)
+hotspot_image, centers = detect_hotspots(thermal_image, threshold=150)
 
-# # Save and display the output
-# cv2.imwrite("hotspot_detected.jpg", hotspot_image)
-# cv2.imshow("Hotspots", hotspot_image)
-# #cv2.imshow("Thresholded", thresholded)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
+# Save and display the output
+cv2.imwrite("hotspot_detected.jpg", hotspot_image)
+cv2.imshow("Hotspots", hotspot_image)
+#cv2.imshow("Thresholded", thresholded)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
