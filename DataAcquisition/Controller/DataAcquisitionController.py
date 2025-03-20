@@ -7,7 +7,7 @@ from logging.handlers import QueueHandler, QueueListener
 
 class DataAcquisitionController():
     """Creates a controller for Data Acquisition."""
-    def __init__(self, num_processes=3, log_level=logging.INFO, data_dir='/home/team5/MineSweeper'):
+    def __init__(self, log_level=logging.INFO, data_dir='/home/team5/MineSweeper'):
         """ Initializes Data Acquistion Controller."""
         # get the location of the data directory
         self.data_dir = data_dir
@@ -118,7 +118,7 @@ class DataAcquisitionController():
     def join_all_sensors(self):
         """Attempt to join all sensor processes"""
         for sensor_name, p_info in self.sensor_processes.items():
-            self.logger.debug(f"Attempting to join {sensor_name} process.")
+            self.logger.info(f"Attempting to join {sensor_name} process.")
             p_info["process"].join()
             
         # stop all sensors

@@ -1,5 +1,4 @@
 import time
-import os
 import numpy as np
 import picamera2 as pi_cam
 from libcamera import controls
@@ -22,7 +21,6 @@ class RgbSensor(BaseSensor):
             self.resolution = (1920, 1080) # default resolution to take
     
         self.cam = pi_cam.Picamera2()
-        self._setup_camera()
         
     def _setup_camera(self):
         """
@@ -43,7 +41,7 @@ class RgbSensor(BaseSensor):
         try:
             image_buf = np.empty((self.resolution[1] * self.resolution[0] * 3,), dtype=np.uint8)
             image_buf = self.cam.capture_array("main")
-            self.logger.debug(f"Image Frame Captured")
+            self.logger.info(f"Image Frame Captured")
             
             image = image_buf.reshape((self.resolution[1], self.resolution[0], 4))
             
@@ -53,7 +51,7 @@ class RgbSensor(BaseSensor):
             # save data to .npz file
             npz_path = (self.data_dir + f"/rgb/rgb_{timestamp}.npz")
             np.savez(npz_path, rgb=image)
-            self.logger.debug(f"Saving RGB Data at {npz_path}.")
+            self.logger.info(f"Saving RGB Data at {npz_path}.")
             
             data = {
                 "sensor": "rgb",
@@ -72,7 +70,7 @@ class RgbSensor(BaseSensor):
         try:
             self._setup_camera()
             nFrames = 0
-            while self.running.is_set() or nFrames < self.num_frames:
+            while self.running.is_set() and nFrames < self.num_frames:
                 data = self.acquire_data()
                 if data:
                     self.data_queue.put(data)
@@ -89,5 +87,6 @@ class RgbSensor(BaseSensor):
         """
         self.logger.info("RGB sensor stopped.")
         self.cam.close()
+        self.cam.stop()
         super().stop()
        

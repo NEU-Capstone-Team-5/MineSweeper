@@ -30,6 +30,7 @@ if __name__ == "__main__":
     controller = DataAcquisitionController(log_level=logging.INFO, data_dir= data_dir)
 
     # Add sensor configurations to the controller
+    controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
     
     # Determine Depth Camera Port
     ret = -1
@@ -47,12 +48,10 @@ if __name__ == "__main__":
     else:
         tof.close()
         # add depth camera to controller if found
-        controller.add_sensor_config("tof", DepthSensor, num_frames = 10, port=port)
+        # controller.add_sensor_config("tof", DepthSensor, num_frames = 10, port=port)
     del tof
     
-    controller.add_sensor_config("thermal", ThermalSensor, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, num_frames = 10)
-    
-    # controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
+    # controller.add_sensor_config("thermal", ThermalSensor, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, num_frames = 10)
     
     # run the sensors
     print(f"----- Starting Sensors Processes -----\n")
