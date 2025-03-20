@@ -7,8 +7,11 @@ from logging.handlers import QueueHandler, QueueListener
 
 class DataAcquisitionController():
     """Creates a controller for Data Acquisition."""
-    def __init__(self, num_processes=3, log_level=logging.INFO):
+    def __init__(self, num_processes=3, log_level=logging.INFO, data_dir='/home/team5/MineSweeper'):
         """ Initializes Data Acquistion Controller."""
+        # get the location of the data directory
+        self.data_dir = data_dir
+        
         # Create Multiprocessing Pool
         self.pool = mp.Pool(processes=num_processes)
         
@@ -64,7 +67,9 @@ class DataAcquisitionController():
         """
         if sensor_name in self.sensor_configs:
             self.logger.warning(f"Sensor config for '{sensor_name}' already exists. Overwriting...")
-            
+        
+        kwargs["data_dir"] = self.data_dir
+        
         self.sensor_configs[sensor_name] = {
             "class": sensor_class,
             "args": args,

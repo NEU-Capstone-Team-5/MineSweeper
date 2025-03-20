@@ -25,7 +25,7 @@ if __name__ == "__main__":
     
     # Create Data Acquisition Controller Object
     print(f"----- Initializing Controller Object ------\n")
-    controller = DataAcquisitionController(num_processes=3, log_level=logging.DEBUG)
+    controller = DataAcquisitionController(num_processes=3, log_level=logging.DEBUG, data_dir= data_dir)
     
     # Add sensor configurations to the controller
     controller.add_sensor_config("thermal", ThermalSensor, num_frames = 10)
@@ -35,14 +35,4 @@ if __name__ == "__main__":
     # run the sensors
     print(f"----- Starting Sensors Processes -----\n")
     controller.start_all_sensors()
-    
-    while True:
-        # wait here
-        if (not controller.data_queue.empty()):
-            break;
-    print(f"----- Stopping Sensors Processes -----")
-    controller.stop_all_sensors()
-    
-    logging.shutdown()
-    
     

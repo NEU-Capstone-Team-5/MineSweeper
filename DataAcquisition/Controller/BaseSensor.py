@@ -15,10 +15,15 @@ class BaseSensor:
         
         # set default num frames to 10
         if ("num_frames" in self.kwargs):
-            self.num_frames = self.kwargs["num_frames"];
+            self.num_frames = self.kwargs["num_frames"]
         else:
             self.num_frames = 10
         
+        # set default data directory
+        if ("data_dir" in self.kwargs):
+            self.data_dir = self.kwargs["data_dir"]
+        else:
+            self.data_dir = "/home/team5/MineSweeper/data"
         
     def run(self):
         self.logger.info(f"{self.sensor_name} started.")

@@ -39,7 +39,7 @@ class ThermalSensor(BaseSensor):
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
             
             # save data to .npz file
-            npz_path = (os.getcwd() + f"/data/thermal/mlx90640_{timestamp}.npz")
+            npz_path = (self.data_dir + f"/thermal/mlx90640_{timestamp}.npz")
             np.savez(npz_path, temperature=data_array)
             
             data = {

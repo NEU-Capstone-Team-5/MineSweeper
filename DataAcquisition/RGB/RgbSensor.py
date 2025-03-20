@@ -20,7 +20,7 @@ class RgbSensor(BaseSensor):
             self.resolution = kwargs["resolution"]
         else :
             self.resolution = (1920, 1080) # default resolution to take
-
+    
         self.cam = pi_cam.Picamera2()
         self._setup_camera()
         
@@ -50,7 +50,7 @@ class RgbSensor(BaseSensor):
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
             
             # save data to .npz file
-            npz_path = ( + f"/data/rgb/rgb_{timestamp}.npz")
+            npz_path = (self.data_dir + f"/rgb/rgb_{timestamp}.npz")
             np.savez(npz_path, rgb=image)
             self.logger.debug(f"Saving RGB Data at {npz_path}.")
             

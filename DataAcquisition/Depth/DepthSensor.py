@@ -54,7 +54,7 @@ class DepthSensor(BaseSensor):
                 timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
                 
                 # save data to .npz file
-                npz_path = (os.getcwd() + f"/data/depth/tof_{timestamp}.npz")
+                npz_path = (self.data_dir + f"/depth/tof_{timestamp}.npz")
                 np.savez(npz_path, depth=depth_buf, confidence=confidence_buf)
                 
                 data = {
