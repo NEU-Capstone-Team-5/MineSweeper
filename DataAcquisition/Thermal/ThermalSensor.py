@@ -13,14 +13,16 @@ class ThermalSensor(BaseSensor):
     """
     Collects data from the Thermal Camera.
     """
-    def __init__(self, sensor_name, data_queue, event: mp.Event, 
-            logger: logging.Logger, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, *args, **kwargs):
+    def __init__(self, sensor_name, data_queue, event: mp.Event, logger: logging.Logger, *args, **kwargs):
         super().__init__(sensor_name, data_queue, event, logger)
-        self.refresh_rate = refresh_rate
         self.mlx_shape = (24, 32)
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = thermal_cam.MLX90640(self.i2c)
-        self.mlx.refresh_rate = self.refresh_rate
+        if ("refresh_rate" in kwargs):
+            self.mlx.refresh_rate = kwargs["refresh_rate"]
+        else: 
+            self.mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
+            
         
     def acquire_data(self):
         """
@@ -63,6 +65,7 @@ class ThermalSensor(BaseSensor):
                 if data:
                     self.data_queue.put(data)
                 time.sleep(delay)  # Adjust as needed
+                nFrames += 1
         except KeyboardInterrupt:
             self.logger.error(f"Thermal Collection stopped from KeyboardInterrupt")
         except Exception as e:

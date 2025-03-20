@@ -10,6 +10,8 @@ from DataAcquisition.Thermal.ThermalSensor import ThermalSensor
 from DataAcquisition.Depth.DepthSensor import DepthSensor
 from DataAcquisition.RGB.RgbSensor import RgbSensor
 from DataAcquisition.utils.script_path import get_script_dir
+import ArducamDepthCamera as ac
+import adafruit_mlx90640 as thermal_cam
 
 if __name__ == "__main__":
     # --- Initialization ---
@@ -25,14 +27,40 @@ if __name__ == "__main__":
     
     # Create Data Acquisition Controller Object
     print(f"----- Initializing Controller Object ------\n")
-    controller = DataAcquisitionController(num_processes=3, log_level=logging.DEBUG, data_dir= data_dir)
-    
+    controller = DataAcquisitionController(log_level=logging.INFO, data_dir= data_dir)
+
     # Add sensor configurations to the controller
-    controller.add_sensor_config("thermal", ThermalSensor, num_frames = 10)
-    controller.add_sensor_config("tof", DepthSensor, num_frames = 10)
-    controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
+    
+    # Determine Depth Camera Port
+    ret = -1
+    tof = ac.ArducamCamera()
+    port = -1
+    for i in range(16):
+        try:
+            ret = tof.open(ac.Connection.CSI, i)
+            if (ret == 0):
+                port = i
+        except Exception as e:
+            continue
+    if port == -1:
+        print(f"Error: Cannot find DepthSensor.")
+    else:
+        tof.close()
+        # add depth camera to controller if found
+        controller.add_sensor_config("tof", DepthSensor, num_frames = 10, port=port)
+    del tof
+    
+    controller.add_sensor_config("thermal", ThermalSensor, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, num_frames = 10)
+    
+    # controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
     
     # run the sensors
     print(f"----- Starting Sensors Processes -----\n")
     controller.start_all_sensors()
+    
+    time.sleep(1)
+    
+    controller.join_all_sensors()
+    
+    
     

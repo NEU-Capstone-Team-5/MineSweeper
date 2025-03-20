@@ -6,7 +6,7 @@ from datetime import datetime
 from DataAcquisition.Controller.BaseSensor import BaseSensor  # Assuming BaseSensor is in the same directory
 import multiprocessing as mp
 import logging
-
+import subprocess
 class DepthSensor(BaseSensor):
     """
     Collects data from the ToF Camera.
@@ -15,26 +15,29 @@ class DepthSensor(BaseSensor):
         super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
         self.tof = ac.ArducamCamera()
 
+        # check if port is found
+        if ("port" in kwargs):
+            self.port = kwargs["port"]
+        else:
+            self.port = 8
+            
     def _setup_camera(self):
         """
         Opens and starts the ToF camera.
         """
-        ret = -1
-        for i in range(15):
-            try:
-                ret = self.tof.open(ac.Connection.CSI, i)
-                if ret == 0:
-                    break
-            except:
-                continue
-        
+        if (self.port != -1):
+            ret = self.tof.open(ac.Connection.CSI, self.port)
+            self.logger.info(f"Opened Depth Sensor on port {self.port}.")
+        else:
+            self.logger.error(f"Couldn't find connection to Depth Sensor.")
+            
         if ret != 0:
-            raise Exception("Failed to open ToF camera. Error code:", ret)
+            self.logger.error(f"Failed to open ToF camera. Error code:{ret}")
 
         ret = self.tof.start(ac.FrameType.DEPTH)
         if ret != 0:
             self.tof.close()
-            raise Exception("Failed to start ToF camera. Error code:", ret)
+            self.logger.error(f"Failed to start ToF camera. Error code:{ret}")
             
     def acquire_data(self):
         """
@@ -74,7 +77,9 @@ class DepthSensor(BaseSensor):
         """
         Continuously collects ToF data and puts it into the data queue.
         """
+        self.logger.info("Running ToF Process")
         self._setup_camera()
+        
         try:
             nFrames = 0
             while self.running.is_set() and nFrames < self.num_frames:
@@ -93,7 +98,6 @@ class DepthSensor(BaseSensor):
         """
         Stops the ToF data collection.
         """
-        self.running = False
         self.tof.stop()
         self.tof.close()
         self.logger.info("ToF sensor stopped.")

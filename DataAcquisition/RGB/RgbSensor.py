@@ -41,6 +41,7 @@ class RgbSensor(BaseSensor):
             dict: A dictionary containing the sensor data.
         """
         try:
+            image_buf = np.empty((self.resolution[1] * self.resolution[0] * 3,), dtype=np.uint8)
             image_buf = self.cam.capture_array("main")
             self.logger.debug(f"Image Frame Captured")
             
@@ -68,11 +69,10 @@ class RgbSensor(BaseSensor):
         """
         Continuously collects RGB data and puts it into the data queue.
         """
-        self.running = True
         try:
             self._setup_camera()
             nFrames = 0
-            while self.running or nFrames < self.num_frames:
+            while self.running.is_set() or nFrames < self.num_frames:
                 data = self.acquire_data()
                 if data:
                     self.data_queue.put(data)

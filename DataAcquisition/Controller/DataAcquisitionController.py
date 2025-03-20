@@ -12,9 +12,6 @@ class DataAcquisitionController():
         # get the location of the data directory
         self.data_dir = data_dir
         
-        # Create Multiprocessing Pool
-        self.pool = mp.Pool(processes=num_processes)
-        
         # create multiprocessing queue for data queues
         self.data_queue = mp.Queue(maxsize=400) # Optional for now (no processing will be done after)
         
@@ -32,8 +29,8 @@ class DataAcquisitionController():
         
         # Create a "real" handler
         real_handler = logging.FileHandler("temp.log")
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        real_handler.setFormatter(formatter)
+        # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        # real_handler.setFormatter(formatter)
 
         # Create the QueueListener (in the main process)
         self.listener = QueueListener(self.log_queue, real_handler)
@@ -97,8 +94,6 @@ class DataAcquisitionController():
         
     def start_all_sensors(self, num_frames=10):
         """Starts all configured sensors."""
-        results = []
-        
         # traverse through sensor configurations
         for sensor_name, config in self.sensor_configs.items():
             # Check if the sensor already exists
@@ -106,27 +101,32 @@ class DataAcquisitionController():
                 self.logger.warning(f"Sensor '{sensor_name}' already running. Skipping.")
                 continue
             
+            # create Process obj
+            curr_process = mp.Process(target=self._run_sensor,
+                                args=(config["class"], sensor_name, config["args"], config["kwargs"]))
+            
+            config["process"] = curr_process
+            config["process_id"] = curr_process.pid
+            
             # add to running sensor_process
+            self.logger.info(f"Starting {sensor_name} process.")
             self.sensor_processes[sensor_name] = config
-            self.logger.info(f"Starting {sensor_name} processing.")
             
-            # initialize a multiprocessing queue for each sensor
-            res = self.pool.apply_async(self._run_sensor,
-                    args=(config["class"], sensor_name, config["args"], config["kwargs"]))
+            # start the current process
+            curr_process.start()
             
-            # append the result to the results array
-            results.append(res.get())
+    def join_all_sensors(self):
+        """Attempt to join all sensor processes"""
+        for sensor_name, p_info in self.sensor_processes.items():
+            self.logger.debug(f"Attempting to join {sensor_name} process.")
+            p_info["process"].join()
             
-        # wait for all sensors to finish their tasks
-        self.pool.join()
-        
         # stop all sensors
         self.stop_all_sensors()
             
     def stop_all_sensors(self):
         """Stops all running sensors."""
         self.running.clear() # Clear running event flag
-        self.pool.close()
         self.logger.info("Process pool stopped.")
         time.sleep(0.1)
         self.listener.stop()
