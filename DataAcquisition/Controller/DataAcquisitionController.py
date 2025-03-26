@@ -87,6 +87,7 @@ class DataAcquisitionController():
             self.logger.info(f"Attempting to start {sensor_name}'s process")
             sensor = sensor_class(sensor_name, self.data_queue, self.running, 
                                   self.logger, *args, **kwargs)
+            time.sleep(1)
             sensor.run() #The sensor will run forever, until stopped.
         except Exception as e:
             self.logger.error(f"Error in sensor '{sensor_name}' process: {e}")

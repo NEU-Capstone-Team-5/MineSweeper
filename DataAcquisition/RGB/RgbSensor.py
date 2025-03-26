@@ -21,6 +21,7 @@ class RgbSensor(BaseSensor):
             self.resolution = (1920, 1080) # default resolution to take
     
         self.cam = pi_cam.Picamera2()
+        self._setup_camera()
         
     def _setup_camera(self):
         """
@@ -68,7 +69,6 @@ class RgbSensor(BaseSensor):
         Continuously collects RGB data and puts it into the data queue.
         """
         try:
-            self._setup_camera()
             nFrames = 0
             while self.running.is_set() and nFrames < self.num_frames:
                 data = self.acquire_data()
