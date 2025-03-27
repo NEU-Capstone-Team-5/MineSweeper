@@ -59,7 +59,7 @@ def collect_thermal_data(mlx, queue):
         num_frames = 0
         
         # collect 10 frames
-        while num_frames < 10:
+        while num_frames < 1:
             try:
                 # Setup frame for storing temperatures
                 frame = np.zeros((24 * 32,))
@@ -121,7 +121,7 @@ def collect_tof_data(tof, queue):
         return
     try:
         frame_count = 0
-        while frame_count < 10:
+        while frame_count < 1:
             frame = tof.requestFrame(2000) # set timeout to 2s
             print("ToF Frame received")
             if frame is not None and isinstance(frame, ac.DepthData):
@@ -177,7 +177,7 @@ def collect_rgb_data(cam: pi_cam.Picamera2, queue):
     try:
         num_frame = 0
         # capture 10 frames
-        while num_frame < 10:
+        while num_frame < 1:
             
             # initialize buffer
             image_buf = np.empty((1920 * 1080 * 3,), dtype=np.uint8)
@@ -322,7 +322,7 @@ def process_rgb_data(data:Dict):
         rgb_data = data["rgb"]
         
         # remove unused alpha channel and convert to BGR
-        rgb_image = cv2.cvtColor(rgb_data, cv2.COLOR_BGRA2BGR)
+        rgb_image = cv2.cvtColor(rgb_data, cv2.COLOR_BGRA2GRAY)
         print(f"Data loaded from: {file_path}")
         
         # get save path
