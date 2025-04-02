@@ -25,6 +25,12 @@ class BaseSensor:
         else:
             self.data_dir = "/home/team5/MineSweeper/data"
         
+        # get delay from constructor
+        if ("delay" in kwargs):
+            self.delay = kwargs["delay"]
+        else:
+            self.delay = 1.0
+        
     def run(self):
         self.logger.info(f"{self.sensor_name} started.")
         raise NotImplementedError

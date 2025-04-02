@@ -19,7 +19,7 @@ class RgbSensor(BaseSensor):
             self.resolution = kwargs["resolution"]
         else :
             self.resolution = (1920, 1080) # default resolution to take
-    
+        
         self.cam = pi_cam.Picamera2()
         self._setup_camera()
         
@@ -32,7 +32,7 @@ class RgbSensor(BaseSensor):
         self.cam.start()
         self.cam.set_controls({"AfMode": controls.AfModeEnum.Continuous})
         
-    def acquire_data(self):
+    def acquire_data(self, nFrames):
         """
         Acquires a single RGB frame.
 
@@ -50,8 +50,8 @@ class RgbSensor(BaseSensor):
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
             
             # save data to .npz file
-            npz_path = (self.data_dir + f"/rgb/rgb_{timestamp}.npz")
-            np.savez(npz_path, rgb=image)
+            npz_path = (self.data_dir + f"/rgb/rgb_{nFrames}.npz")
+            np.savez(npz_path, timestamp=timestamp, rgb=image)
             self.logger.info(f"Saving RGB Data at {npz_path}.")
             
             data = {
@@ -71,13 +71,20 @@ class RgbSensor(BaseSensor):
         try:
             nFrames = 0
             while self.running.is_set() and nFrames < self.num_frames:
-                data = self.acquire_data()
+                data = self.acquire_data(nFrames)
                 if data:
                     self.data_queue.put(data)
-                time.sleep(1)  # Adjust as needed
+                time.sleep(self.delay)  # Adjust as needed
                 nFrames += 1
         except KeyboardInterrupt:
             self.logger.error(f"RGB Collection Stopped from KeyboardInterrupt")
+        except Exception as e:
+            self.logger.error(f"RGB Found an Error.")
+            self.data_queue.put({
+                "type": "error",
+                "sensor": self.sensor_name,
+                "message": str(e)
+            })
         finally:
             self.stop()
     

@@ -24,7 +24,7 @@ class ThermalSensor(BaseSensor):
             self.mlx.refresh_rate = thermal_cam.RefreshRate.REFRESH_8_HZ
             
         
-    def acquire_data(self):
+    def acquire_data(self, nFrames):
         """
         Acquires a single thermal frame.
 
@@ -41,8 +41,8 @@ class ThermalSensor(BaseSensor):
             timestamp = now.strftime("%H-%M-%S") + f".{now.microsecond // 1000:03d}"
             
             # save data to .npz file
-            npz_path = (self.data_dir + f"/thermal/mlx90640_{timestamp}.npz")
-            np.savez(npz_path, temperature=data_array)
+            npz_path = (self.data_dir + f"/thermal/mlx90640_{nFrames}.npz")
+            np.savez(npz_path, timestamp=timestamp, temperature=data_array)
             
             data = {
                 "sensor": "thermal",
@@ -54,17 +54,17 @@ class ThermalSensor(BaseSensor):
             self.logger.error(f"Error acquiring thermal data: {e}")
             return None
     
-    def run(self, delay=1):
+    def run(self):
         """
         Continuously collects thermal data and puts it into the data queue.
         """
         try:
             nFrames = 0
             while self.running.is_set() and nFrames < self.num_frames:
-                data = self.acquire_data()
+                data = self.acquire_data(nFrames)
                 if data:
                     self.data_queue.put(data)
-                time.sleep(delay)  # Adjust as needed
+                time.sleep(self.delay)  # Adjust as needed
                 nFrames += 1
         except KeyboardInterrupt:
             self.logger.error(f"Thermal Collection stopped from KeyboardInterrupt")
