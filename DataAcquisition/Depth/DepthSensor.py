@@ -82,7 +82,8 @@ class DepthSensor(BaseSensor):
                 # save data to .npz file
                 npz_path = (self.data_dir + f"/depth/tof_{nFrames}.npz")
                 np.savez(npz_path, timestamp=timestamp, depth=depth_buf, 
-                         amplitude=amplitude_buf, confidence=confidence_buf)
+                         amplitude=amplitude_buf, confidence=confidence_buf,
+                         intrinsic=intrinsic)
                 
                 # package data to queue
                 data = {
