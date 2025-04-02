@@ -13,11 +13,12 @@ class ThermalSensor(BaseSensor):
     """
     Collects data from the Thermal Camera.
     """
-    def __init__(self, sensor_name, data_queue, event: mp.Event, logger: logging.Logger, *args, **kwargs):
-        super().__init__(sensor_name, data_queue, event, logger)
+    def __init__(self, sensor_name, data_queue, event: mp.Event, logger: logging.Logger, args, kwargs):
+        super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
         self.mlx_shape = (24, 32)
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = thermal_cam.MLX90640(self.i2c)
+        
         if ("refresh_rate" in kwargs):
             self.mlx.refresh_rate = kwargs["refresh_rate"]
         else: 

@@ -72,9 +72,10 @@ class DataAcquisitionController():
             "args": args,
             "kwargs": kwargs,
         }
+        
         self.logger.info(f"Sensor config added for '{sensor_name}'.")
     
-    def _run_sensor(self, sensor_class, sensor_name, *args, **kwargs):
+    def _run_sensor(self, sensor_class, sensor_name, args, kwargs):
         """Internal method to run the sensor process.
         
             Args:
@@ -86,16 +87,16 @@ class DataAcquisitionController():
         try:
             self.logger.info(f"Attempting to start {sensor_name}'s process")
             sensor = sensor_class(sensor_name, self.data_queue, self.running, 
-                                  self.logger, *args, **kwargs)
-            time.sleep(1)
+                                  self.logger, args, kwargs)
+            self.logger.info(f"Created {sensor_name} class object.")
             sensor.run() #The sensor will run forever, until stopped.
         except Exception as e:
             self.logger.error(f"Error in sensor '{sensor_name}' process: {e}")
             raise
         
-    def start_all_sensors(self, num_frames=10):
+    def start_all_sensors(self):
         """Starts all configured sensors."""
-        # traverse through sensor configurations
+        # traverse through sensor configurations and create the Processes
         for sensor_name, config in self.sensor_configs.items():
             # Check if the sensor already exists
             if sensor_name in self.sensor_processes:
@@ -110,18 +111,22 @@ class DataAcquisitionController():
             config["process_id"] = curr_process.pid
             
             # add to running sensor_process
-            self.logger.info(f"Starting {sensor_name} process.")
+            self.logger.info(f"Created {sensor_name} process.")
             self.sensor_processes[sensor_name] = config
             
-            # start the current process
-            curr_process.start()
-            
+        # start the current process
+        for curr_process in self.sensor_processes:
+           
+            self.logger.info(f"Started {sensor_name} process.")
+            self.sensor_processes[curr_process]["process"].start()
+                        
     def join_all_sensors(self):
         """Attempt to join all sensor processes"""
         for sensor_name, p_info in self.sensor_processes.items():
             self.logger.info(f"Attempting to join {sensor_name} process.")
             p_info["process"].join()
-            
+        
+        time.sleep(1)
         # stop all sensors
         self.stop_all_sensors()
             

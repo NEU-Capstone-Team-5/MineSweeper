@@ -30,28 +30,34 @@ if __name__ == "__main__":
     controller = DataAcquisitionController(log_level=logging.INFO, data_dir= data_dir)
 
     # Add sensor configurations to the controller
-    controller.add_sensor_config("rgb", RgbSensor, resolution=(1920,1080), num_frames = 10)
-    time.sleep(1)
+    controller.add_sensor_config("rgb", RgbSensor, resolution=(640,480), num_frames = 100, delay=0.25)
+
     # Determine Depth Camera Port
     ret = -1
     tof = ac.ArducamCamera()
+    
+    # Cycle through the port
     port = -1
     for i in range(16):
         try:
             ret = tof.open(ac.Connection.CSI, i)
             if (ret == 0):
                 port = i
+                tof.close()
+                break
         except Exception as e:
             continue
+    
+    # Check if the port is found
     if port == -1:
         print(f"Error: Cannot find DepthSensor.")
     else:
-        tof.close()
         # add depth camera to controller if found
-        controller.add_sensor_config("tof", DepthSensor, num_frames = 10, port=port)
+        controller.add_sensor_config("tof", DepthSensor, num_frames = 100, port=port, delay=0.25)
     del tof
+    time.sleep(1)
     
-    controller.add_sensor_config("thermal", ThermalSensor, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, num_frames = 10)
+    controller.add_sensor_config("thermal", ThermalSensor, refresh_rate=thermal_cam.RefreshRate.REFRESH_8_HZ, num_frames = 100, delay=0.25)
     
     # run the sensors
     print(f"----- Starting Sensors Processes -----\n")

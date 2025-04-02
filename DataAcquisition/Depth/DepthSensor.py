@@ -14,16 +14,18 @@ class DepthSensor(BaseSensor):
     """
     Collects data from the ToF Camera.
     """
-    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, *args, **kwargs):
+    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, args, kwargs): # type: ignore
         super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
         self.tof = ac.ArducamCamera()
 
         # check if port is found
         if ("port" in kwargs):
             self.port = kwargs["port"]
+            self.logger.info(f"ToF Port: {self.port}")
         else:
             self.port = 8 # Default to CSI Port 1
-            
+        
+        
     def _setup_camera(self):
         """
         Opens and starts the ToF camera.
@@ -42,8 +44,8 @@ class DepthSensor(BaseSensor):
         ret = self.tof.start(ac.FrameType.DEPTH)
         if ret != 0:
             self.tof.close()
-            self.logger.error(f"Failed to start ToF camera. Error code:{ret}")
-        
+            self.logger.error(f"Failed to start ToF camera. Error code:{ret.value}")
+            
         # Change Range to 4m
         self.tof.setControl(ac.Control.RANGE, 4000)
         self._range = self.tof.getControl(ac.Control.RANGE)

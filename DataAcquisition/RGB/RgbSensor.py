@@ -11,7 +11,7 @@ class RgbSensor(BaseSensor):
     """
     Collects data from the RGB Camera.
     """
-    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, *args, **kwargs):
+    def __init__(self, sensor_name, data_queue, event:mp.Event, logger: logging.Logger, args, kwargs):
         super().__init__(sensor_name, data_queue, event, logger, args, kwargs)
         
         # get resolution from constructor
